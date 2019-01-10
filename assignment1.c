@@ -66,14 +66,19 @@ struct elt* circular_list(const char* str){
   else{
     //We have at least one character, so lets make an elt for it.
     firstEntry = malloc(sizeof(struct elt));
+    uint8_t length = 0;
+    uint8_t i, shouldFail = 0;
     if(firstEntry == NULL){
       return NULL;
     }
+
     firstEntry->val = str[0];
     void* firstLocation = firstEntry; //where the first entry is
-    uint8_t i, shouldFail = 0;
     struct elt* entry = firstEntry;
-    for(i = 1; i < strlen(str); i++){
+    for(i = 0; str[i] != '\0'; i++){
+      length++;
+    }
+    for(i = 1; i < length; i++){
       struct elt* newEntry;
       newEntry = malloc(sizeof(struct elt));
       if(newEntry == NULL){
@@ -100,7 +105,7 @@ struct elt* circular_list(const char* str){
       free(firstEntry);
       return NULL;
     }
-    for(i=0; i < strlen(str); i++){
+    for(i=0; i < length; i++){
       entry = entry->link;
     }
     return firstEntry;
@@ -115,7 +120,6 @@ int convert(enum format_t mode, const char* str, uint64_t* out){
   uint8_t length = 0;
   unsigned int data = 0;
   char letter;
-  char* pointer;
   int currentPosition = 1;
   //calculate string length
   for(i = 0; str[i] != '\0'; i++){
@@ -133,7 +137,11 @@ int convert(enum format_t mode, const char* str, uint64_t* out){
       }
     }
     //TODO change the way out is calculated so we don't use external functions.
-    *out = strtoul(str, &pointer, 8);
+    for(i = length - 1; i >= 0; i--){
+      data += (str[i] - 48) * currentPosition;
+      currentPosition *= 8;
+    }
+    *out = data;
     break;
   case HEX:
     for(i = 0; i < length; i++){
@@ -145,8 +153,6 @@ int convert(enum format_t mode, const char* str, uint64_t* out){
           return -1;
         }
     }
-    //TODO
-    //*out = strtoul(str, &pointer, 16);
     for(i = length - 1; i >= 0; i--){
       if(str[i] > '9'){
         switch(str[i]){
@@ -207,6 +213,7 @@ int convert(enum format_t mode, const char* str, uint64_t* out){
 
 void log_pid(void){
   int pid = syscall(SYS_getpid);
+  uint8_t length = 7;
   if(pid == -1){
     return;
   }
@@ -215,17 +222,39 @@ void log_pid(void){
     return;
   }
   //Convert the pid number to ascii code
-  char data[5];
+  int val = 10000000;
+  char data[9] = {0, 0, 0, 0, 0, 0, 0, 0 , 0};
   //TODO create this without needing sprintf
-  sprintf(data, "%d\n", pid);
-  int status = syscall(SYS_write, file, data, strlen(data));
+  //get each number in pid
+  int i;
+  printf("PID is: %d\n", pid);
+  for(i = 0; i < 7 /*Max number of digits in linux x86_64 process id*/; i++){
+    if((pid / val) == 0){
+      if(pid % val == 0){
+          val /= 10;
+          length--;
+          printf("Minusing! PID: %d and VAL: %d\n", pid, val);
+          continue;
+      }
+    }
+    data[6 - i] = (48 + (pid % 10));
+    printf("Val: %c\n", data[6-i]);
+    pid /= 10;
+    val /= 10;
+    length++;
+  }
+  data[length] = '\n';
+  //data[length + 1] = '\0';
+  printf("Data is: %s\n", data);
+  //sprintf(data, "%d\n", pid);
+  int status = syscall(SYS_write, file, &data, length + 1);
   if(status == -1){
-
+    printf("WRITE ERR!\n");
+    syscall(SYS_unlink, "pid.log");
     return;
   }
   syscall(SYS_close, file);
 }
-
 //TODO Remove this main function before submitting
 int main(){
     assert(byte_sort(0x0102030405060708) == 0x0807060504030201);
