@@ -1,0 +1,2 @@
+testing: assignment1.c
+	gcc -ggdb -o assignment1 assignment1.cgcc -ggdb -o assign

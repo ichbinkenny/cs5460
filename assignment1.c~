@@ -1,0 +1,44 @@
+
+#include "assignment1.h"
+
+uint64_t byte_sort(uint64_t arg){
+    uint64_t result = 0;
+    uint64_t mask = 0xFF00000000000000;
+    uint8_t values[8];
+    printf("Mask is 0x%llx\n", mask);
+    uint8_t i, j;
+    for(i = 0; i < 8; i++){
+	uint64_t newMask = mask >> 8 * i;
+	printf("Current Mask: 0x%llx\n", newMask);
+        printf("Value for run %d is: 0x%llx\n", i, arg & newMask);
+	uint8_t convertedValue = (arg & newMask) >> 8 * (8 - i - 1);
+	printf("Converted Value: 0x%x\n", convertedValue);
+	values[i] = convertedValue;
+    }
+    //Now find each individual smallest value and add it to result
+    for(i = 0; i < 8; i++){
+	for(j = i + 1; j < 8; j++){
+	    if(values[i] > values[j]){
+		uint8_t temp = values[i];
+		values[i] = values[j];
+		values[j] = temp;
+	    }
+	}
+    }
+
+    //print our array
+    for(i = 0; i < 8; i++){
+	//printf("0x%x, ", values[i]);
+	printf("Adding value: 0x%llx\n", values[i] << 8 * 8 * 8 * 8 * 8 * 8 * 8 * 8 * i);
+	result += values[i] << 8 * i;
+    }
+    printf("Returning value: 0x%llx\n", result);
+    return result;
+}
+
+//TODO Remove this main function before submitting
+int main(){
+    byte_sort(0x0102030405060708);
+    byte_sort(0x0403deadbeef0201);
+    return 0;
+}
